@@ -711,3 +711,17 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCTY+e0b+sTCWQGnhJ4W1KN0Zra99gBpUZIf+LZyk/p
 [   26.394529] cloud-init[1520]: Cloud-init v. 19.2-36-g059d049c-0ubuntu2~16.04.1 running 'modules:final' at Mon, 02 Dec 2019 05:03:51 +0000. Up 25.97 seconds.
 [   26.408989] cloud-init[1520]: ci-info: no authorized ssh keys fingerprints found for user ubuntu.
 [   26.417890] cloud-init[1520]: Cloud-init v. 19.2-36-g059d049c-0ubuntu2~16.04.1 finished at Mon, 02 Dec 2019 05:03:51 +0000. Datasource DataSourceNoCloud [seed=/dev/sdb][dsmode=net].  Up 26.37 seconds
+[47208.240001] NMI watchdog: BUG: soft lockup - CPU#0 stuck for 38s! [apport:12286]
+[60913.371374] INFO: rcu_sched self-detected stall on CPU
+[60913.802612] 	0-...: (1 ticks this GP) idle=ab9/1/0 softirq=141446/141446 fqs=0 
+[60914.200811] 	 (t=148649 jiffies g=58149 c=58148 q=7)
+[60914.204841] rcu_sched kthread starved for 148649 jiffies! g58149 c58148 f0x0 s3 ->state=0x1
+[60914.210232] INFO: rcu_sched self-detected stall on CPU
+[60914.215381] 	0-...: (2 ticks this GP) idle=ab9/1/0 softirq=141446/141446 fqs=0 
+[60914.219404] 	 (t=1798126 jiffies g=58149 c=58148 q=7)
+[60914.222916] rcu_sched kthread starved for 1798126 jiffies! g58149 c58148 f0x0 s3 ->state=0x1
+[60944.110111] NMI watchdog: BUG: soft lockup - CPU#0 stuck for 28s! [systemd-logind:18877]
+[68537.593444] INFO: rcu_sched self-detected stall on CPU
+[68537.890509] 	0-...: (1 ticks this GP) idle=c39/140000000000001/0 softirq=143862/143862 fqs=0 
+[68537.893671] 	 (t=464544 jiffies g=59728 c=59727 q=23)
+[68537.897439] rcu_sched kthread starved for 464544 jiffies! g59728 c59727 f0x0 s3 ->state=0x1

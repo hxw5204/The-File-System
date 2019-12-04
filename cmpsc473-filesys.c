@@ -826,14 +826,24 @@ int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 
 	if (file == NULL)
 	{
-		errorMessage("fileSetAttr: No file corresponds to fd");
+		errorMessage("fileSetAttr: No file corresponds to fstat");
 		return -1;
 	}
 
 	for (i = 0; i < value_size; i++)
 	{
-		file->name[i] = value[i];
+		if (file->name_size >= i)
+		{
+			file->name[i] = value[i];
+		}
+		else
+		{
+			break;
+		}
 	}
+
+	// retrieve a block to store extended attributes and assign it to file->attr_block
+	// Maybe diskGetAttrBlock( file, flags )?
 
 	/* Error case: print on failed XATTR_CREATE */
 	errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
