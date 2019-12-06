@@ -805,6 +805,23 @@ int fileSeek(unsigned int fd, unsigned int index)
                   flags - set attribute flags (XATTR_CREATE and XATTR_REPLACE)
     Outputs     : 0 on success, <0 on error
 
+	This function sets an attribute of name (length of name_size) of a file 
+	specified by the descriptor fd to value (length of value_size) given the 
+	flags value. The flags values can be XATTR_CREATE, which requires that 
+	the attribute not be assigned to the file previously, and XATTR_REPLACE, 
+	which requires that the attribute already has been assigned to the file. 
+	Your code needs to return an error if the conditions are not consistent 
+	with the flags. Otherwise, your code should set the attribute's value 
+	(more detail below).
+
+	A key function of your code will be to retrieve a block to store extended 
+	attributes for the file and assign it to the file (file->attr_block). 
+	Once assigned, this block should also be made available to the in-memory 
+	file (file_t) and the file control block (fcb_t). Then, the attr_block 
+	index can then be retrieved from either the file or the disk, but you 
+	should look for this value on the file structure before reading from 
+	the fcb (the disk). The same should be done for fileGetAttr below.
+
 ***********************************************************************/
 
 int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size,
@@ -864,6 +881,12 @@ int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
                   name_size - length of the name in bytes
                   size - of buffer for value
     Outputs     : number of bytes on success, <0 on error
+
+	This function retrieves the value of a file's attribute name (length 
+	of name_size). The function also takes a buffer for the value, called 
+	value, that is allocated to accept string of up to size bytes. Your 
+	code should return the number of bytes read into the value buffer. 
+	If no attribute of name is assigned, then nothing (0 bytes) is returned.
 
 ***********************************************************************/
 
