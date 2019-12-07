@@ -773,20 +773,183 @@ int fileSeek( unsigned int fd, unsigned int index )
 
 ***********************************************************************/
 
-int fileSetAttr( unsigned int fd, char *name, char *value, unsigned int name_size, 
-		 unsigned int value_size, unsigned int flags )
+int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int value_size, unsigned int flags)
 {
+
 	/* IMPLEMENT THIS */
 
-	/* Error case: print on failed XATTR_CREATE */
+	/*
+	// Error case: print on failed XATTR_CREATE
 	errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
 
-	/* Error case: print on failed XATTR_REPLACE */
+	// Error case: print on failed XATTR_REPLACE 
 	errorMessage("fileSetAttr fail: no existing entry for name - incompatible with flag XATTR_REPLACE");
+	*/
+
+	/*
+	int i = 0;
+	fstat_t *fstat = fs->proc->fstat_table[fd];
+	file_t *file;
+	
+	if ( fstat == NULL ) {
+		errorMessage("fileSetAttr: No file corresponds to fd");
+		return -1;
+	}
+
+	file = fstat->file;
+
+	if ( file == NULL ) {
+		errorMessage("fileSetAttr: No file corresponds to fstat");
+		return -1;
+	}
+    	
+	int xcb_index = diskGetAttrBlock(file, flags); 
+	
+	if (xcb_index == BLK_INVALID){
+	// call diskGetAttrBlock(*file, BLOCK_CREATE);
+		errorMessage("Could not create attribute block");
+		return -1;
+	}
+	
+    file->attr_block = xcb_index;
+    dblock_t *dblk;
+	xcb_t *xcb;
+	dblk = (dblock_t *)disk2addr( fs->base, (block2offset( xcb_index )));
+	xcb = (xcb_t *)&dblk->data; 
+	xcb->xattrs[xcb->no_xattrs].name = (char*) malloc(name_size*sizeof(char));
+    memcpy(&(xcb->xattrs[xcb->no_xattrs].name), name, name_size);
+  	
+	unsigned int total = 0;
+    unsigned int xattr_dblock_bytes = 0;
+  	
+  	int foundXattr = 0;
+    int xattrIndex = 0;
+
+  	if (flags == XATTR_REPLACE){
+
+		for (i = 0; i < xcb->no_xattrs; i++){
+
+			if (strcmp(xcb->xattrs[i], name) == 0){
+
+				foundXattr = 1;
+				xattrIndex = i;
+				break;
+
+			}
+		}
+	}
+
+	if (!foundXattr){
+		
+		errorMessage("fileSetAttr fail: no existing entry for name - incompatible with flag XATTR_REPLACE");
+		return -1;
+	}
+	
+	int offsetToStartAt = xcb->xattrs[xattrIndex].value_offset;
+
+	int newEndSize = xcb->xattrs[xcb->no_xattrs].value_offset + value_size;
+	
+	while ( total < value_size) { 
+
+		int index = fstat->offset / ( FS_BLOCKSIZE - sizeof(dblock_t) );
+		unsigned int xattr_dblock = xcb->value_blocks[index];
+		unsigned int block_bytes;
+
+		if ( xattr_dblock == BLK_INVALID ) {
+			xattr_dblock = diskGetBlock( file, index );
+			xcb->value_blocks[index] = xattr_dblock;
+				
+			if ( xattr_dblock == BLK_INVALID ) {
+				errorMessage("fileSetAttr: Could get block from the disk");
+				return -1;
+			}
+		}
+
+		if ( index >= XATTR_BLOCKS ) {
+			errorMessage("fileSetAttr: Max number of file attr data blocks for single file reached");
+			return total;
+		}
+
+		xattr_dblock_bytes = diskWrite(&(file->diskfile->size), xattr_dblock, value, value_size, fstat->offset, total);
+		
+		total += xattr_dblock_bytes;
+		fstat->offset += xattr_dblock_bytes;
+		value += xattr_dblock_bytes;
+	}
+
+	if ( fstat->offset > xcb->size ) {
+		xcb->size = fstat->offset;
+	}
+
+	xcb->no_xattrs++;
+	xcb->xattrs[xcb->no_xattrs].value_offset = fstat->offset;
+	return total;
+	
+	// Error case: print on failed XATTR_CREATE 
+	errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
+    */
+
+	int i = 0;
+	fstat_t *fstat = fs->proc->fstat_table[fd];
+	file_t *file;
+
+	if (fstat == NULL){
+		
+		errorMessage("fileSetAttr: No file corresponds to fd");
+		return -1;
+	}
+
+	file = fstat->file;
+
+	if (file == NULL){
+
+		errorMessage("fileSetAttr: No file corresponds to fstat");
+		return -1;
+	}
+
+	unsigned int attr_block = file->attr_block;
+
+	if (attr_block == BLK_INVALID){
+
+		attr_block = diskGetAttrBlock(file, BLOCK_CREATE);
+
+	}else{
+
+		int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
+
+		if (attr_found && flags == XATTR_CREATE){
+
+			errorMessage("fileSetAttr: (Flags incorrect) Tried to replace attribute when called with flag XATTR_CREATE");
+			return -1;
+
+		}else if (!attr_found && flags == XATTR_REPLACE){
+
+			errorMessage("fileSetAttr: (Flags incorrect) Tried to create attribute when called with flag XATTR_REPLACE");
+			return -1;
+
+		}else{
+
+			int attr_set = diskSetAttr(attr_block, name, value, name_size, value_size);
+
+			if (attr_set == -1 && flags == XATTR_CREATE){
+
+				errorMessage("fileSetAttr: Could not set attribute (XATTR_CREATE)");
+				return attr_set;
+
+			}else if (attr_set == -1 && flags == XATTR_REPLACE){
+
+				errorMessage("fileSetAttr: Could not set attribute (XATTR_REPLACE)");
+				return attr_set;
+
+			}else{
+
+				return attr_set;
+			}
+		}
+	}
 
 	return 0;
 }
-
 
 /**********************************************************************
 
@@ -801,9 +964,51 @@ int fileSetAttr( unsigned int fd, char *name, char *value, unsigned int name_siz
 
 ***********************************************************************/
 
-int fileGetAttr( unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int size ) 
+int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int size)
 {
 	/* IMPLEMENT THIS */
 
-	return 0;
+	int i = 0;
+	fstat_t *fstat = fs->proc->fstat_table[fd];
+	file_t *file;
+
+	if (fstat == NULL){
+
+		errorMessage("fileGetAttr: No file corresponds to fd");
+		return -1;
+	}
+
+	file = fstat->file;
+
+	if (file == NULL){
+
+		errorMessage("fileGetAttr: No file corresponds to fstat");
+		return -1;
+	}
+
+	unsigned int attr_block = file->attr_block;
+	if (attr_block == BLK_INVALID){
+
+		attr_block = diskGetAttrBlock(file, BLOCK_CREATE);
+
+	}else{
+
+		int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
+		if (attr_found){
+
+			int bytes_read = diskGetAttr(attr_block, name, value, name_size, size, 0);
+
+			if (bytes_read == 0){
+
+				errorMessage("fileGetAttr:bytes_read was 0");
+
+			}
+
+			return bytes_read;
+
+		}else{
+			errorMessage("fileGetAttr:Couldn't find attr file");
+			return 0;
+		}
+	}
 }

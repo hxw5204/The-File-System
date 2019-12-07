@@ -328,9 +328,7 @@ int diskCreateFile( unsigned int base, dentry_t *dentry, file_t *file )
 
 ***********************************************************************/
 
-unsigned int diskWrite( unsigned int *disk_offset, unsigned int block, 
-			char *buf, unsigned int bytes, 
-			unsigned int offset, unsigned int sofar )
+unsigned int diskWrite( unsigned int *disk_offset, unsigned int block, char *buf, unsigned int bytes, unsigned int offset, unsigned int sofar )
 {
 	dblock_t *dblk;
 	char *start, *end, *data;
@@ -371,8 +369,7 @@ unsigned int diskWrite( unsigned int *disk_offset, unsigned int block,
 
 ***********************************************************************/
 
-unsigned int diskRead( unsigned int block, char *buf, unsigned int bytes, 
-		       unsigned int offset, unsigned int sofar )
+unsigned int diskRead( unsigned int block, char *buf, unsigned int bytes, unsigned int offset, unsigned int sofar )
 {
 	dblock_t *dblk;
 	char *start, *end, *data;
@@ -545,8 +542,7 @@ unsigned int diskGetAttrBlock( file_t *file, unsigned int flags )
 
 ***********************************************************************/
 
-int diskSetAttr( unsigned int attr_block, char *name, char *value, 
-		 unsigned int name_size, unsigned int value_size )
+int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int name_size, unsigned int value_size )
 {
 	/* IMPLEMENT THIS */
 
@@ -569,10 +565,36 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
 
 ***********************************************************************/
 
-int diskGetAttr( unsigned int attr_block, char *name, char *value, 
-		 unsigned int name_size, unsigned int size, unsigned int existsp )
+int diskGetAttr( unsigned int attr_block, char *name, char *value, unsigned int name_size, unsigned int size, unsigned int existsp )
 { 
 	/* IMPLEMENT THIS */
 
+	dblock_t *dblk;
+	xcb_t *xcb;
+	int i;
+    dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
+	xcb = (xcb_t *)&dblk->data;
+	   
+
+	for ( i = 0; i < xcb->no_xattrs; i++ ) {  
+        	if (xcb->xattrs[i].name != NULL)
+       		{
+            		char * nameToCompare = (char*) malloc(name_size * sizeof(char));
+            		memcpy(nameToCompare, xcb->xattrs[i].name, name_size);
+            		if (strcmp(nameToCompare, name) == 0)
+            		{
+                		if (existsp == 1){       
+                    			return 1;
+                		}else{
+							unsigned int value_block_index = xcb->xattrs[i].value_offset / FS_BLOCKSIZE;
+							unsigned int value_block = xcb->value_blocks[value_block_index];
+							char * buf = (char*) malloc(size*sizeof(char));
+				    	
+                		}
+            		}
+        	}
+	}
+
 	return 0;
+
 }
