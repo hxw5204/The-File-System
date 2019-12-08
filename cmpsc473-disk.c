@@ -546,6 +546,31 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
 {
 	/* IMPLEMENT THIS */
 
+	dblock_t *dblk;
+	xcb_t *xcb;
+	int i;
+
+	dblk = (dblock_t *)disk2addr(fs->base,(block2offset(attr_block)));
+
+	xcb = (xcb_t *)&dblk->data;
+
+	for(i = 0; i<xcb->no_xattrs; i++){
+
+		if(xcb->xattrs[i].name != NULL){
+			char* nameToCompare = (char*)malloc(name_size * sizeof(char));
+			memcpy(nameToCompare, xcb->xattr[i].name, name_size);
+			if(strcmp(nameToCompare, name) == 0){
+				unsigned int total = 0;
+
+				if(xcb->xattrs[i].value_offset > xcb->size){
+					xcb->size = xcb->xattrs[i].value_offset;
+				}
+				return total;
+			}
+		}
+
+	}
+
 	return 0;
 }
 
@@ -586,10 +611,25 @@ int diskGetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
                 		if (existsp == 1){       
                     			return 1;
                 		}else{
-							unsigned int value_block_index = xcb->xattrs[i].value_offset / FS_BLOCKSIZE;
+							unsigned int value_block_index = xcb->xattrs[i].value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
 							unsigned int value_block = xcb->value_blocks[value_block_index];
+							unsigned int xattr_value_offset = xcb->xattrs[i].value_offset;
 							char * buf = (char*) malloc(size*sizeof(char));
-				    	
+
+							int num_bytes_to_read = min(size, xcb->xattrs[i].value_size);
+
+							unsigned int total_bytes_read = 0;
+
+							while(total_bytes_read< num_bytes_to_read){
+								value_block_index = xattr_value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+								value_block = xcb->value_blocks[value_block_index];
+								unsigned int bytes_read = diskRead(value_block, buf, num_bytes_to_read, xattr_value_offset, total_bytes_read);
+								total_bytes_read += bytes_read;
+
+								xattr_value_offset += bytes_read;
+								buf += bytes_read;
+							}
+				    		return total_bytes_read;
                 		}
             		}
         	}

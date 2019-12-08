@@ -889,12 +889,12 @@ int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 	errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
     */
 
-	int i = 0;
+	// int i = 0;
 	fstat_t *fstat = fs->proc->fstat_table[fd];
 	file_t *file;
 
 	if (fstat == NULL){
-		
+
 		errorMessage("fileSetAttr: No file corresponds to fd");
 		return -1;
 	}
@@ -948,7 +948,7 @@ int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 		}
 	}
 
-	return 0;
+	return -1;
 }
 
 /**********************************************************************
@@ -968,7 +968,7 @@ int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 {
 	/* IMPLEMENT THIS */
 
-	int i = 0;
+	//int i = 0;
 	fstat_t *fstat = fs->proc->fstat_table[fd];
 	file_t *file;
 
@@ -1011,4 +1011,5 @@ int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 			return 0;
 		}
 	}
+	return -1;
 }
