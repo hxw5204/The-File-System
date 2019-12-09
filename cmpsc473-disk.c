@@ -544,7 +544,73 @@ unsigned int diskGetAttrBlock( file_t *file, unsigned int flags )
 
 int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int name_size, unsigned int value_size )
 {
-	/* IMPLEMENT THIS */
+	/*****************************************************************
+
+	 	* simple_xattr_set - xattr SET operation for in-memory/pseudo filesystems
+		* @xattrs: target simple_xattr list
+		* @name: name of the extended attribute
+		* @value: value of the xattr. If %NULL, will remove the attribute.
+		* @size: size of the new xattr
+		* @flags: %XATTR_{CREATE|REPLACE}
+		*
+		* %XATTR_CREATE is set, the xattr shouldn't exist already; otherwise fails
+		* with -EEXIST.  If %XATTR_REPLACE is set, the xattr should exist;
+		* otherwise, fails with -ENODATA.
+		*
+		* Returns 0 on success, -errno on failure.
+
+	int simple_xattr_set(struct simple_xattrs *xattrs, const char *name,
+		     const void *value, size_t size, int flags)
+	{
+		struct simple_xattr *xattr;
+		struct simple_xattr *new_xattr = NULL;
+		int err = 0;
+
+		
+		if (value) {
+			new_xattr = simple_xattr_alloc(value, size);
+			if (!new_xattr)
+				return -ENOMEM;
+
+			new_xattr->name = kstrdup(name, GFP_KERNEL);
+			if (!new_xattr->name) {
+				kfree(new_xattr);
+				return -ENOMEM;
+			}
+		}
+
+		spin_lock(&xattrs->lock);
+		list_for_each_entry(xattr, &xattrs->head, list) {
+			if (!strcmp(name, xattr->name)) {
+				if (flags & XATTR_CREATE) {
+					xattr = new_xattr;
+					err = -EEXIST;
+				} else if (new_xattr) {
+					list_replace(&xattr->list, &new_xattr->list);
+				} else {
+					list_del(&xattr->list);
+				}
+				goto out;
+			}
+		}
+		if (flags & XATTR_REPLACE) {
+			xattr = new_xattr;
+			err = -ENODATA;
+		} else {
+			list_add(&new_xattr->list, &xattrs->head);
+			xattr = NULL;
+		}
+	out:
+		spin_unlock(&xattrs->lock);
+		if (xattr) {
+			kfree(xattr->name);
+			kfree(xattr);
+		}
+		return err;
+
+	}
+	
+	******************************************************************/
 
 	dblock_t *dblk;
 	xcb_t *xcb;

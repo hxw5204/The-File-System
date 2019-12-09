@@ -776,120 +776,28 @@ int fileSeek( unsigned int fd, unsigned int index )
 int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int value_size, unsigned int flags)
 {
 
-	/* IMPLEMENT THIS */
+	/**********************************************************************
 
-	/*
-	// Error case: print on failed XATTR_CREATE
-	errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
+    SYSCALL_DEFINE5(fsetxattr, int, fd, const char __user *, name,
+		const void __user *,value, size_t, size, int, flags)
+	{
+		struct fd f = fdget(fd);
+		int error = -EBADF;
 
-	// Error case: print on failed XATTR_REPLACE 
-	errorMessage("fileSetAttr fail: no existing entry for name - incompatible with flag XATTR_REPLACE");
-	*/
-
-	/*
-	int i = 0;
-	fstat_t *fstat = fs->proc->fstat_table[fd];
-	file_t *file;
-	
-	if ( fstat == NULL ) {
-		errorMessage("fileSetAttr: No file corresponds to fd");
-		return -1;
-	}
-
-	file = fstat->file;
-
-	if ( file == NULL ) {
-		errorMessage("fileSetAttr: No file corresponds to fstat");
-		return -1;
-	}
-    	
-	int xcb_index = diskGetAttrBlock(file, flags); 
-	
-	if (xcb_index == BLK_INVALID){
-	// call diskGetAttrBlock(*file, BLOCK_CREATE);
-		errorMessage("Could not create attribute block");
-		return -1;
-	}
-	
-    file->attr_block = xcb_index;
-    dblock_t *dblk;
-	xcb_t *xcb;
-	dblk = (dblock_t *)disk2addr( fs->base, (block2offset( xcb_index )));
-	xcb = (xcb_t *)&dblk->data; 
-	xcb->xattrs[xcb->no_xattrs].name = (char*) malloc(name_size*sizeof(char));
-    memcpy(&(xcb->xattrs[xcb->no_xattrs].name), name, name_size);
-  	
-	unsigned int total = 0;
-    unsigned int xattr_dblock_bytes = 0;
-  	
-  	int foundXattr = 0;
-    int xattrIndex = 0;
-
-  	if (flags == XATTR_REPLACE){
-
-		for (i = 0; i < xcb->no_xattrs; i++){
-
-			if (strcmp(xcb->xattrs[i], name) == 0){
-
-				foundXattr = 1;
-				xattrIndex = i;
-				break;
-
-			}
+		if (!f.file)
+			return error;
+		audit_file(f.file);
+		error = mnt_want_write_file(f.file);
+		if (!error) {
+			error = setxattr(f.file->f_path.dentry, name, value, size, flags);
+			mnt_drop_write_file(f.file);
 		}
+		fdput(f);
+		return error;
 	}
 
-	if (!foundXattr){
-		
-		errorMessage("fileSetAttr fail: no existing entry for name - incompatible with flag XATTR_REPLACE");
-		return -1;
-	}
-	
-	int offsetToStartAt = xcb->xattrs[xattrIndex].value_offset;
+	***********************************************************************/
 
-	int newEndSize = xcb->xattrs[xcb->no_xattrs].value_offset + value_size;
-	
-	while ( total < value_size) { 
-
-		int index = fstat->offset / ( FS_BLOCKSIZE - sizeof(dblock_t) );
-		unsigned int xattr_dblock = xcb->value_blocks[index];
-		unsigned int block_bytes;
-
-		if ( xattr_dblock == BLK_INVALID ) {
-			xattr_dblock = diskGetBlock( file, index );
-			xcb->value_blocks[index] = xattr_dblock;
-				
-			if ( xattr_dblock == BLK_INVALID ) {
-				errorMessage("fileSetAttr: Could get block from the disk");
-				return -1;
-			}
-		}
-
-		if ( index >= XATTR_BLOCKS ) {
-			errorMessage("fileSetAttr: Max number of file attr data blocks for single file reached");
-			return total;
-		}
-
-		xattr_dblock_bytes = diskWrite(&(file->diskfile->size), xattr_dblock, value, value_size, fstat->offset, total);
-		
-		total += xattr_dblock_bytes;
-		fstat->offset += xattr_dblock_bytes;
-		value += xattr_dblock_bytes;
-	}
-
-	if ( fstat->offset > xcb->size ) {
-		xcb->size = fstat->offset;
-	}
-
-	xcb->no_xattrs++;
-	xcb->xattrs[xcb->no_xattrs].value_offset = fstat->offset;
-	return total;
-	
-	// Error case: print on failed XATTR_CREATE 
-	errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
-    */
-
-	// int i = 0;
 	fstat_t *fstat = fs->proc->fstat_table[fd];
 	file_t *file;
 
@@ -968,7 +876,22 @@ int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 {
 	/* IMPLEMENT THIS */
 
-	//int i = 0;
+	/**********************************************************************
+	SYSCALL_DEFINE4(fgetxattr, int, fd, const char __user *, name,
+		void __user *, value, size_t, size)
+	{
+		struct fd f = fdget(fd);
+		ssize_t error = -EBADF;
+
+		if (!f.file)
+			return error;
+		audit_file(f.file);
+		error = getxattr(f.file->f_path.dentry, name, value, size);
+		fdput(f);
+		return error;
+	}
+	***********************************************************************/
+
 	fstat_t *fstat = fs->proc->fstat_table[fd];
 	file_t *file;
 
