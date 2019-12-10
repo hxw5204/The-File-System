@@ -529,6 +529,12 @@ unsigned int diskGetAttrBlock( file_t *file, unsigned int flags )
 
 /* Project 4: on-disk versions of the xattr functions */
 
+// Writes the value to a disk data block associating it with the name attribute. 
+// As described in detail below, attr_block is the data block for sttribute 
+// structures (dxattr_t), so diskSetAttr must create a structure for name if not already
+// there. The attribute values are stored in separate data blocks referenced from 
+// the attribute structure. 
+
 /**********************************************************************
 
     Function    : diskSetAttr
@@ -546,70 +552,7 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
 {
 	/*****************************************************************
 
-	 	* simple_xattr_set - xattr SET operation for in-memory/pseudo filesystems
-		* @xattrs: target simple_xattr list
-		* @name: name of the extended attribute
-		* @value: value of the xattr. If %NULL, will remove the attribute.
-		* @size: size of the new xattr
-		* @flags: %XATTR_{CREATE|REPLACE}
-		*
-		* %XATTR_CREATE is set, the xattr shouldn't exist already; otherwise fails
-		* with -EEXIST.  If %XATTR_REPLACE is set, the xattr should exist;
-		* otherwise, fails with -ENODATA.
-		*
-		* Returns 0 on success, -errno on failure.
-
-	int simple_xattr_set(struct simple_xattrs *xattrs, const char *name,
-		     const void *value, size_t size, int flags)
-	{
-		struct simple_xattr *xattr;
-		struct simple_xattr *new_xattr = NULL;
-		int err = 0;
-
-		
-		if (value) {
-			new_xattr = simple_xattr_alloc(value, size);
-			if (!new_xattr)
-				return -ENOMEM;
-
-			new_xattr->name = kstrdup(name, GFP_KERNEL);
-			if (!new_xattr->name) {
-				kfree(new_xattr);
-				return -ENOMEM;
-			}
-		}
-
-		spin_lock(&xattrs->lock);
-		list_for_each_entry(xattr, &xattrs->head, list) {
-			if (!strcmp(name, xattr->name)) {
-				if (flags & XATTR_CREATE) {
-					xattr = new_xattr;
-					err = -EEXIST;
-				} else if (new_xattr) {
-					list_replace(&xattr->list, &new_xattr->list);
-				} else {
-					list_del(&xattr->list);
-				}
-				goto out;
-			}
-		}
-		if (flags & XATTR_REPLACE) {
-			xattr = new_xattr;
-			err = -ENODATA;
-		} else {
-			list_add(&new_xattr->list, &xattrs->head);
-			xattr = NULL;
-		}
-	out:
-		spin_unlock(&xattrs->lock);
-		if (xattr) {
-			kfree(xattr->name);
-			kfree(xattr);
-		}
-		return err;
-
-	}
-	
+	 	
 	******************************************************************/
 
 	dblock_t *dblk;
@@ -624,7 +567,7 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
 
 		if(xcb->xattrs[i].name != NULL){
 			char* nameToCompare = (char*)malloc(name_size * sizeof(char));
-			memcpy(nameToCompare, xcb->xattr[i].name, name_size);
+			memcpy(nameToCompare, xcb->xattrs[i].name, name_size);
 			if(strcmp(nameToCompare, name) == 0){
 				unsigned int total = 0;
 
@@ -652,7 +595,17 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
                   name_size - length of name string in bytes
                   size - max amount that can be read
                   existsp - flag to check for existence of attr of name only
-    Outputs     : number of bytes read on success, <0 on error                  
+    Outputs     : number of bytes read on success, <0 on error  
+
+    Reads the attribute name from the attr_block to retrieve the attribute data
+    structure. This structure contains an offset in the value data blocks to 
+    enable retrieval of the value which is written to the value buffer up to length size.
+    If the existsp flag is set, then this function only returns whether the attribute
+    of name exists (regardless of whether it has a non-null value).
+
+    Note that reading and writing attributes bears some resemblance to reading and writing
+    generate disk data (although the structures for attributes are different). However,
+    you should use file/diskRead and file/diskWrite for guidence.
 
 ***********************************************************************/
 
