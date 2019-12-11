@@ -1,3 +1,7 @@
+CMPSC473 Error: fileGetAttr:Couldn't find attr file
+CMPSC473 Error: fileGetAttr:Couldn't find attr file
+CMPSC473 Error: fileGetAttr:Couldn't find attr file
+CMPSC473 Error: fileGetAttr:Couldn't find attr file
 ************ Running commands from file cmd4 on filesystem in file test_fs **********
 open: name = duper; flags = 2
 XATTR for duper: NUM_XATTR = 0 	  TOTAL_SUM_OF_XATTR_NAMES = 0
@@ -6,33 +10,26 @@ XATTR for super: NUM_XATTR = 0 	  TOTAL_SUM_OF_XATTR_NAMES = 0
 open: name = luper; flags = 2
 XATTR for luper: NUM_XATTR = 0 	  TOTAL_SUM_OF_XATTR_NAMES = 0
 setxattr: fd: 0; attr: security; value: user_u:sysadm_r:duper_t; flags: 0x1
-setxattr: failed to set attribute name security to user_u:sysadm_r:duper_t with flags 1 for fd 0
 setxattr: succeeded
 setxattr: fd: 1; attr: security; value: user_u:sysadm_r:super_t; flags: 0x1
-setxattr: failed to set attribute name security to user_u:sysadm_r:super_t with flags 1 for fd 1
 setxattr: succeeded
 setxattr: fd: 2; attr: security; value: user_u:sysadm_r:init_t; flags: 0x1
-setxattr: failed to set attribute name security to user_u:sysadm_r:init_t with flags 1 for fd 2
 setxattr: succeeded
 setxattr: fd: 1; attr: testing; value: this is still a test; flags: 0x1
-setxattr: failed to set attribute name testing to this is still a test with flags 1 for fd 1
 setxattr: succeeded
 setxattr: fd: 1; attr: article.title; value: Innovations in Linux Management; flags: 0x1
-setxattr: failed to set attribute name article.title to Innovations in Linux Management with flags 1 for fd 1
 setxattr: succeeded
 setxattr: fd: 0; attr: article.author; value: Wk Yksdjfhgaskjdfhg; flags: 0x2
-setxattr: failed to set attribute name article.author to Wk Yksdjfhgaskjdfhg with flags 2 for fd 0
 setxattr: succeeded
 setxattr: fd: 2; attr: article.title; value: Innovations in Linux Management; flags: 0x1
-setxattr: failed to set attribute name article.title to Innovations in Linux Management with flags 1 for fd 2
 setxattr: succeeded
-getxattr: fd: 0; attr: article.author; buf: 0x85e3990, name_size: 14; value_size: 50
+getxattr: fd: 0; attr: article.author; buf: 0x8f79990, name_size: 14; value_size: 50
 getxattr: error value not found for name article.author for fd 0
-getxattr: fd: 2; attr: article.author; buf: 0x85e39c8, name_size: 14; value_size: 50
+getxattr: fd: 2; attr: article.author; buf: 0x8f799c8, name_size: 14; value_size: 50
 getxattr: error value not found for name article.author for fd 2
-getxattr: fd: 1; attr: article.title; buf: 0x85e3a00, name_size: 13; value_size: 50
+getxattr: fd: 1; attr: article.title; buf: 0x8f79a00, name_size: 13; value_size: 50
 getxattr: error value not found for name article.title for fd 1
-getxattr: fd: 2; attr: article.title; buf: 0x85e3a38, name_size: 13; value_size: 50
+getxattr: fd: 2; attr: article.title; buf: 0x8f79a38, name_size: 13; value_size: 50
 getxattr: error value not found for name article.title for fd 2
 close: 0
 close: 1

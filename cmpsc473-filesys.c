@@ -903,33 +903,36 @@ int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 			errorMessage("fileSetAttr: (Flags incorrect) Tried to replace attribute when called with flag XATTR_CREATE");
 			return -1;
 
-		}else if (!attr_found && flags == XATTR_REPLACE){
+		}
+
+		if (!attr_found && flags == XATTR_REPLACE){
 
 			errorMessage("fileSetAttr: (Flags incorrect) Tried to create attribute when called with flag XATTR_REPLACE");
 			return -1;
 
+		}
+
+
+		int attr_set = diskSetAttr(attr_block, name, value, name_size, value_size);
+
+		if (attr_set == -1 && flags == XATTR_CREATE){
+
+			errorMessage("fileSetAttr: Could not set attribute (XATTR_CREATE)");
+			return attr_set;
+
+		}else if (attr_set == -1 && flags == XATTR_REPLACE){
+
+			errorMessage("fileSetAttr: Could not set attribute (XATTR_REPLACE)");
+			return attr_set;
+
 		}else{
 
-			int attr_set = diskSetAttr(attr_block, name, value, name_size, value_size);
-
-			if (attr_set == -1 && flags == XATTR_CREATE){
-
-				errorMessage("fileSetAttr: Could not set attribute (XATTR_CREATE)");
-				return attr_set;
-
-			}else if (attr_set == -1 && flags == XATTR_REPLACE){
-
-				errorMessage("fileSetAttr: Could not set attribute (XATTR_REPLACE)");
-				return attr_set;
-
-			}else{
-
-				return attr_set;
-			}
+			return attr_set;
 		}
+	
 	}
 
-	return -1;
+	return 0;
 }
 
 /**********************************************************************
@@ -1031,25 +1034,25 @@ int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 
 		attr_block = diskGetAttrBlock(file, BLOCK_CREATE);
 
-	}else{
-
-		int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
-		if (attr_found){
-
-			int bytes_read = diskGetAttr(attr_block, name, value, name_size, size, 0);
-
-			if (bytes_read == 0){
-
-				errorMessage("fileGetAttr:bytes_read was 0");
-
-			}
-
-			return bytes_read;
-
-		}else{
-			errorMessage("fileGetAttr:Couldn't find attr file");
-			return 0;
-		}
 	}
-	return -1;
+
+	int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
+	if (attr_found){
+
+		int bytes_read = diskGetAttr(attr_block, name, value, name_size, size, 0);
+
+		if (bytes_read == 0){
+
+			errorMessage("fileGetAttr:bytes_read was 0");
+
+		}
+
+		return bytes_read;
+
+	}else{
+		errorMessage("fileGetAttr:Couldn't find attr file");
+		return -1;
+	}
+	
+	return 0;
 }
