@@ -559,28 +559,90 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
 	xcb_t *xcb;
 	int i;
 
-	dblk = (dblock_t *)disk2addr(fs->base,(block2offset(attr_block)));
+    dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
+	xcb = (xcb_t *)&dblk->data;  
 
-	xcb = (xcb_t *)&dblk->data;
 
-	for(i = 0; i<xcb->no_xattrs; i++){
+	for ( i = 0; i < xcb->no_xattrs; i++ ){
+        
+        if (xcb->xattrs[i].name != NULL){
 
-		if(xcb->xattrs[i].name != NULL){
-			char* nameToCompare = (char*)malloc(name_size * sizeof(char));
-			memcpy(nameToCompare, xcb->xattrs[i].name, name_size);
-			if(strcmp(nameToCompare, name) == 0){
-				
+	        char * nameToCompare = (char*) malloc(name_size * sizeof(char));
+	        memcpy(nameToCompare, xcb->xattrs[i].name, name_size);
+	        if (strcmp(nameToCompare, name) == 0){
 
-				if(xcb->xattrs[i].value_offset > xcb->size){
-					xcb->size = xcb->xattrs[i].value_offset;
-					return 0;
-				}
-				
-			}
+        		unsigned int total = 0;
+        		while ( total < value_size ) {  
+                	int index = xcb->xattrs[i].value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+                	unsigned int block = xcb->value_blocks[index];
+                	unsigned int block_bytes;
+
+                	if ( block == BLK_INVALID ) {
+                    		errorMessage("diskSetAttr: INVALID LOGIC REACHED, NEED TO MODIFY");			                
+                    		exit(1);
+                	}
+
+                	if ( index >= XATTR_BLOCKS ) {
+                    	errorMessage("diskSetAttr: Max size of value file reached");
+                    	return total;
+					}
+
+                	block_bytes = diskWrite( &(xcb->size), block, value, value_size, 
+			                 xcb->xattrs[i].value_offset, total );
+
+
+                	total += block_bytes; 
+
+                	xcb->xattrs[i].value_offset += block_bytes;
+                	value += block_bytes;
+        		}
+
+        		
+        		if ( xcb->xattrs[i].value_offset > xcb->size ) {
+            		xcb->size = xcb->xattrs[i].value_offset;
+        		}
+              
+                xcb->no_xattrs += 1;
+		    }
+
+            return 0;
 		}
+	}
+        
+    memcpy(xcb->xattrs[i].name, name, name_size);
+	unsigned int total = 0;				
 
+	while ( total < value_size ) {   
+    	int index = xcb->xattrs[i].value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+    	unsigned int block = xcb->value_blocks[index];
+    	unsigned int block_bytes;
+
+
+    	if ( block == BLK_INVALID ) {
+        		errorMessage("diskSetAttr: INVALID LOGIC REACHED, NEED TO MODIFY");			                
+        		exit(1);			            
+    	}
+
+    	if ( index >= XATTR_BLOCKS ) {
+        	errorMessage("diskSetAttr: Max size of value file reached");
+        	return total;
+    		}
+
+    	block_bytes = diskWrite( &(xcb->size), block, value, value_size, xcb->xattrs[i].value_offset, total );
+
+    	total += block_bytes; 
+    	
+    	xcb->xattrs[i].value_offset += block_bytes;
+    	value += block_bytes;
 	}
 
+	
+	if ( xcb->xattrs[i].value_offset > xcb->size ) {
+		xcb->size = xcb->xattrs[i].value_offset;
+	}
+    
+    
+    xcb->no_xattrs += 1;
 	return 0;
 }
 
@@ -614,47 +676,67 @@ int diskGetAttr( unsigned int attr_block, char *name, char *value, unsigned int 
 { 
 	/* IMPLEMENT THIS */
 
-	dblock_t *dblk;
+    dblock_t *dblk;
 	xcb_t *xcb;
 	int i;
-    	dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
+    dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
 	xcb = (xcb_t *)&dblk->data;
-	unsigned int total_bytes_read = 0;
-	   
 
-	for ( i = 0; i < xcb->no_xattrs; i++ ) {  
-        	if (xcb->xattrs[i].name != NULL)
-       		{
+	for ( i = 0; i < xcb->no_xattrs; i++ ){  
+
+        	if (xcb->xattrs[i].name != NULL){
+
             		char * nameToCompare = (char*) malloc(name_size * sizeof(char));
             		memcpy(nameToCompare, xcb->xattrs[i].name, name_size);
-            		if (strcmp(nameToCompare, name) == 0)
-            		{
-                		if (existsp != 1){       
-                    			return -1;
+            		if (strcmp(nameToCompare, name) == 0){
+
+                		if (existsp == 1){  
+
+                    			return 1;
+
+                		}else{
+
+							unsigned int value_block_index = xcb->xattrs[i].value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+							unsigned int value_block = xcb->value_blocks[value_block_index];
+							unsigned int xattr_value_offset = xcb->xattrs[i].value_offset;
+							char * buf = (char*) malloc(size*sizeof(char));
+
+							int num_bytes_to_read = min( size, xcb->xattrs[i].value_size);
+
+							unsigned int total_bytes_read = 0;                    
+							while (total_bytes_read < num_bytes_to_read){
+
+
+								value_block_index = xattr_value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+								value_block = xcb->value_blocks[value_block_index];
+
+								if ( value_block == BLK_INVALID ) {
+									errorMessage("diskGetAttr: INVALID LOGIC REACHED, NEED TO MODIFY");			                
+
+									if ( value_block == BLK_INVALID ) {
+										errorMessage("fileRead: Could get block from the disk");
+										return -1;
+									}
+								}
+
+								if ( value_block_index >= XATTR_BLOCKS ) {
+									errorMessage("diskGetAttr: Max size of value file reached");
+									return -1;
+								}
+
+			
+								unsigned int bytes_read = diskRead(value_block, buf, num_bytes_to_read, xattr_value_offset, total_bytes_read);                        
+
+
+								total_bytes_read += bytes_read;
+
+								xattr_value_offset += bytes_read;
+								buf += bytes_read;
+							}
+							return total_bytes_read;
                 		}
-
-				unsigned int value_block_index = xcb->xattrs[i].value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
-				unsigned int value_block = xcb->value_blocks[value_block_index];
-				unsigned int xattr_value_offset = xcb->xattrs[i].value_offset;
-				char * buf = (char*) malloc(size*sizeof(char));
-
-				int num_bytes_to_read = min(size, xcb->xattrs[i].value_size);
-
-
-				while(total_bytes_read< num_bytes_to_read){
-					value_block_index = xattr_value_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
-					value_block = xcb->value_blocks[value_block_index];
-					unsigned int bytes_read = diskRead(value_block, buf, num_bytes_to_read, xattr_value_offset, total_bytes_read);
-					total_bytes_read += bytes_read;
-
-					xattr_value_offset += bytes_read;
-					buf += bytes_read;
-				}
-                		
             		}
         	}
 	}
-
-	return total_bytes_read;
-
+    return -1;
 }
