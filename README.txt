@@ -20,3 +20,6 @@ Then, we see whether your get operations work properly.
 In cmd4 and cmd5: we also check whether you have correctly allocated the errors due to the flags
 
 Towards the end, we also check whether the space occupied by your xattr is same as our xattr
+
+
+http://man7.org/linux/man-pages/man7/xattr.7.html
