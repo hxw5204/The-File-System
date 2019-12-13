@@ -549,120 +549,118 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
 {
 	/* IMPLEMENT THIS */
 
-	int i;
-	dblock_t *dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
-    	xcb_t *xcb = (xcb_t *)&dblk->data;
-	unsigned int total;
-	char * nameToCompare;
-    	char * xattr_ptr = (char *) (xcb->xattrs);
+	int i = 0;
+	
+    	xcb_t *xcb = (xcb_t *)&((dblock_t *)disk2addr( fs->base, (block2offset( attr_block ))))->data;
+	unsigned int x = 0;
+	char * cname;
+	unsigned int block;
+    	char * xattr = (char *) (xcb->xattrs);
+	unsigned int content;
+	int index;
+	unsigned int current_write_offset;
 
-	for ( i = 0; i < xcb->no_xattrs; i++ ){
+	while (i < xcb->no_xattrs){
 
-		if (((dxattr_t*)xattr_ptr)->name != NULL){
+		if (((dxattr_t*)xattr)->name ){
 
-			nameToCompare = (char*) malloc(name_size * sizeof(char));
-			memcpy(nameToCompare, ((dxattr_t*)xattr_ptr)->name, name_size);
-			if (strcmp(nameToCompare, name) == 0){
+			cname = (char*) malloc(name_size * sizeof(char));
+			memcpy(cname, ((dxattr_t*)xattr)->name, name_size);
 
-				total = 0;
-				((dxattr_t*)xattr_ptr)->value_offset = xcb->size;
-                		unsigned int current_write_offset = ((dxattr_t*)xattr_ptr)->value_offset;
-				while ( total < value_size ) {  
+			if (cname == name){
+
+				((dxattr_t*)xattr)->value_offset = xcb->size;
+                		current_write_offset = ((dxattr_t*)xcb->size)->value_offset;
+				while ( x < value_size ) {  
 		        	
-		            		int index = current_write_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
-					unsigned int block = xcb->value_blocks[index];
-					unsigned int block_bytes;
-
-					
-					if ( block == BLK_INVALID ) {		                
-				    		if (allocDblock( &block, ATTR_BLOCK ) < 0)
-						{
-						    	errorMessage("diskSetAttr: Could not get block from the disk");
-								    return -1;
-						}
-           
-                        			xcb->value_blocks[index] = block;
-		        		}
+		            		index = current_write_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+					block = xcb->value_blocks[index];
 
 					if ( index >= XATTR_BLOCKS ) {
-				    		errorMessage("diskSetAttr: Max size of value file attributes reached");
+				    		errorMessage("diskSetAttr: over max block size");
 
 		                    		if (current_write_offset > xcb->size ) {
 		        				xcb->size = current_write_offset;
 				            	}
 
-		                    		((dxattr_t*)xattr_ptr)->value_size = value_size;
-				    		return total;
+		                    		((dxattr_t*)xattr)->value_size = value_size;
+				    		return x;
 					}
 
+					if ( block == BLK_INVALID ) {		                
+				    		if (allocDblock( &block, ATTR_BLOCK ) < 0)
+						{
+						    	errorMessage("diskSetAttr: alloc dblock failed.");
+							return -1;
+						}
+           
+                        			xcb->value_blocks[index] = block;
+		        		}
+
+
 		        	
-					block_bytes = diskWrite( &(xcb->size), block, value, value_size, current_write_offset, total );
+					content = diskWrite( &(xcb->size), block, value, value_size, current_write_offset, x );
 
 					
-					total += block_bytes; 
+					x += content; 
 
-					current_write_offset += block_bytes;
-					value += block_bytes;
+					current_write_offset += content;
+					value += content;
 				}
                 
 		
 				if (current_write_offset > xcb->size ) {
-						xcb->size = current_write_offset;
+					xcb->size = current_write_offset;
 				}
 
-                		((dxattr_t*)xattr_ptr)->value_size = value_size;
+                		((dxattr_t*)xattr)->value_size = value_size;
         		
-		        
 		        	return 0;
         		}
 		}
-        	xattr_ptr += sizeof(dxattr_t) + ((dxattr_t*)xattr_ptr)->name_size;
+        	xattr += sizeof(dxattr_t) + ((dxattr_t*)xattr)->name_size;
+		i ++;
             
 	}
 
         
-    	((dxattr_t*)xattr_ptr)->name_size = name_size;
-	memcpy(((dxattr_t*)xattr_ptr)->name, name, name_size);
-	((dxattr_t*)xattr_ptr)->value_offset = xcb->size;
+    	((dxattr_t*)xattr)->name_size = name_size;
+	memcpy(((dxattr_t*)xattr)->name, name, name_size);
+	((dxattr_t*)xattr)->value_offset = xcb->size;
    
-    	unsigned int current_write_offset = ((dxattr_t*)xattr_ptr)->value_offset;
-	total = 0;
-	while ( total < value_size ) {   
+    	current_write_offset = ((dxattr_t*)xattr)->value_offset;
+	int y = 0;
+	while ( y < value_size ) {   
 
-		int index = current_write_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
-	    	unsigned int block = xcb->value_blocks[index];
-	    	unsigned int block_bytes;
-
-	    	
-	    	if ( block == BLK_INVALID ) {		                
-	    		if (allocDblock( &block, ATTR_BLOCK ) < 0)
-				{
-					errorMessage("diskSetAttr: Could not get block from the disk");
-				    	return -1;
-				}
-
-		    	xcb->value_blocks[index] = block;
-	    	}
-        
-
+		index = current_write_offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+	    	block = xcb->value_blocks[index];
 
 	    	if ( index >= XATTR_BLOCKS ) {
-			errorMessage("diskSetAttr: Max size of value file attributes reached");
+			errorMessage("diskSetAttr: over max block size");
 		        if (current_write_offset > xcb->size ) {
     				xcb->size = current_write_offset;
 		        }
-		        ((dxattr_t*)xattr_ptr)->value_size = value_size;
-			return total;
+		        ((dxattr_t*)xattr)->value_size = value_size;
+			return y;
+	    	}
+
+	    	if ( block == BLK_INVALID ) {		                
+	    		if (allocDblock( &block, ATTR_BLOCK ) < 0){
+				errorMessage("diskSetAttr: alloc dblock failed.");
+			    	return -1;
+			}
+
+		    	xcb->value_blocks[index] = block;
 	    	}
 
 
-    		block_bytes = diskWrite( &(xcb->size), block, value, value_size, current_write_offset, total );
+    		content = diskWrite( &(xcb->size), block, value, value_size, current_write_offset, y );
 
 
-    		total += block_bytes; 
+    		y += content; 
 
-    		current_write_offset += block_bytes;
-    		value += block_bytes;
+    		current_write_offset += content;
+    		value += content;
 	}
     
     
@@ -670,7 +668,7 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
 		xcb->size = current_write_offset;
 	}
 
-	((dxattr_t*)xattr_ptr)->value_size = value_size;
+	((dxattr_t*)xattr)->value_size = value_size;
 
 	
 	xcb->no_xattrs += 1;
@@ -726,7 +724,7 @@ int diskGetAttr( unsigned int attr_block, char *name, char *value,
 				unsigned int current_read_offset = ((dxattr_t*)xattr_ptr)->value_offset;
                 int num_bytes_to_read = min(size, ((dxattr_t*)xattr_ptr)->value_size);
                
-				while ( total < num_bytes_to_read ) {   // more to write
+				while ( total < num_bytes_to_read ) {   
 		        	
                     int index = current_read_offset / (FS_BLOCKSIZE - sizeof(dblock_t));                    		        	
                     unsigned int block = xcb->value_blocks[index];
