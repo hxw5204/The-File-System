@@ -799,9 +799,13 @@ int fileSetAttr( unsigned int fd, char *name, char *value, unsigned int name_siz
 	}
    
 	founded = diskGetAttr(temp_attr_block, name, NULL, name_size, -1, 1);
+	
+	printf("\n\nfound = %d\n",founded);
 
 	// disk get success.
 	if(founded >= 0){
+		printf("flags = %d\n",flags);
+		printf("xttra = %d\n\n",XATTR_CREATE);
 		if(flags == XATTR_CREATE){
 			errorMessage("fileSetAttr: the conditions are not consistent with the flags. (founded and XATTR_CREATE)");
 	        	return error;
