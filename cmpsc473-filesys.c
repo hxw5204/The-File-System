@@ -771,180 +771,65 @@ int fileSeek( unsigned int fd, unsigned int index )
                   flags - set attribute flags (XATTR_CREATE and XATTR_REPLACE)
     Outputs     : 0 on success, <0 on error
 
-	This function sets an attribute of name (length of name_size) of a file specified by 
-	the descriptor fd to value (length of name_size) given the flags value. The flags
-	values can be XATTR_CREATE, which requires that the attribute not be assigned to the
-	file previously, and XATTR_REPLACE, which requires that the attribute already has
-	been assigned to the file. Your code needs to reutrn an error if the conditions are
-	not consistent with the flags. Otherwose, your code should set the attribute's value.
-
 ***********************************************************************/
 
-int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int value_size, unsigned int flags)
+int fileSetAttr( unsigned int fd, char *name, char *value, unsigned int name_size, 
+		 unsigned int value_size, unsigned int flags )
 {
-
-	/**********************************************************************
-
-    SYSCALL_DEFINE5(fsetxattr, int, fd, const char __user *, name,
-		const void __user *,value, size_t, size, int, flags)
-	{
-		struct fd f = fdget(fd);
-		int error = -EBADF;
-
-		if (!f.file)
-			return error;
-		audit_file(f.file);
-		error = mnt_want_write_file(f.file);
-		if (!error) {
-			error = setxattr(f.file->f_path.dentry, name, value, size, flags);
-			mnt_drop_write_file(f.file);
-		}
-		fdput(f);
-		return error;
-	}
-////////////////////////////////////////////////////////////////////////////////
-
-	* simple_xattr_set - xattr SET operation for in-memory/pseudo filesystems
-		* @xattrs: target simple_xattr list
-		* @name: name of the extended attribute
-		* @value: value of the xattr. If %NULL, will remove the attribute.
-		* @size: size of the new xattr
-		* @flags: %XATTR_{CREATE|REPLACE}
-		*
-		* %XATTR_CREATE is set, the xattr shouldn't exist already; otherwise fails
-		* with -EEXIST.  If %XATTR_REPLACE is set, the xattr should exist;
-		* otherwise, fails with -ENODATA.
-		*
-		* Returns 0 on success, -errno on failure.
-
-	int simple_xattr_set(struct simple_xattrs *xattrs, const char *name,
-		     const void *value, size_t size, int flags)
-	{
-		struct simple_xattr *xattr;
-		struct simple_xattr *new_xattr = NULL;
-		int err = 0;
-
-		
-		if (value) {
-			new_xattr = simple_xattr_alloc(value, size);
-			if (!new_xattr)
-				return -ENOMEM;
-
-			new_xattr->name = kstrdup(name, GFP_KERNEL);
-			if (!new_xattr->name) {
-				kfree(new_xattr);
-				return -ENOMEM;
-			}
-		}
-
-		spin_lock(&xattrs->lock);
-		list_for_each_entry(xattr, &xattrs->head, list) {
-			if (!strcmp(name, xattr->name)) {
-				if (flags & XATTR_CREATE) {
-					xattr = new_xattr;
-					err = -EEXIST;
-				} else if (new_xattr) {
-					list_replace(&xattr->list, &new_xattr->list);
-				} else {
-					list_del(&xattr->list);
-				}
-				goto out;
-			}
-		}
-		if (flags & XATTR_REPLACE) {
-			xattr = new_xattr;
-			err = -ENODATA;
-		} else {
-			list_add(&new_xattr->list, &xattrs->head);
-			xattr = NULL;
-		}
-	out:
-		spin_unlock(&xattrs->lock);
-		if (xattr) {
-			kfree(xattr->name);
-			kfree(xattr);
-		}
-		return err;
-
-	}
-	
-
-	***********************************************************************/
+	/* IMPLEMENT THIS */
 
 	fstat_t *fstat = fs->proc->fstat_table[fd];
 	file_t *file;
-
-	if (fstat == NULL){
-
+	
+	if ( fstat == NULL ) {
 		errorMessage("fileSetAttr: No file corresponds to fd");
 		return -1;
 	}
 
 	file = fstat->file;
 
-	if (file == NULL){
-
+	if ( file == NULL ) {
 		errorMessage("fileSetAttr: No file corresponds to fstat");
 		return -1;
 	}
-
-	unsigned int attr_block = file->attr_block;
-
-	if (attr_block == BLK_INVALID){
-
-		attr_block = diskGetAttrBlock(file, BLOCK_CREATE);
-
-	}
-	
-
-
-	int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
-
-	if (attr_found && flags == XATTR_CREATE){
-
-		errorMessage("fileSetAttr: (Flags incorrect) Tried to replace attribute when called with flag XATTR_CREATE");
-		return -1;
-
-	}
-
-	if (!attr_found && flags == XATTR_REPLACE){
-
-		errorMessage("fileSetAttr: (Flags incorrect) Tried to create attribute when called with flag XATTR_REPLACE");
-		return -1;
-
-	}else{
-
-
-		int attr_set = diskSetAttr(attr_block, name, value, name_size, value_size);
-
-		if (attr_set == -1 && flags == XATTR_CREATE){
-
-			errorMessage("fileSetAttr: Could not set attribute (XATTR_CREATE)");
-			return -1;
-
-		}else if (attr_set == -1 && flags == XATTR_REPLACE){
-
-			errorMessage("fileSetAttr: Could not set attribute (XATTR_REPLACE)");
-			return -1;
-
-		}else if (attr_set == 0){
+    unsigned int attr_block = file->attr_block;
+    if (attr_block == BLK_INVALID){
+        attr_block = diskGetAttrBlock(file, BLOCK_CREATE);
+    }
+    
+    int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
+    if ( attr_found == 1 && flags == XATTR_CREATE){
+        errorMessage("fileSetAttr: (Flags incorrect) Tried to replace attribute when called with flag XATTR_CREATE");
+	    return -1;
+    }else if ( attr_found == -1 && flags == XATTR_REPLACE){
+        errorMessage("fileSetAttr: (Flags incorrect) Tried to create attribute when called with flag XATTR_REPLACE");
+	    return -1;
+    }else{
+        int attr_set = diskSetAttr(attr_block, name, value, name_size, value_size);
+        if (attr_set == -1 && flags == XATTR_CREATE){
+            errorMessage("fileSetAttr: Could not set attribute (XATTR_CREATE)");
+	        return -1;
+        }else if (attr_set == -1 && flags == XATTR_REPLACE){
+            errorMessage("fileSetAttr: Could not set attribute (XATTR_REPLACE)");
+	        return -1;
+        }else if (attr_set == 0){
             dblock_t *dblk;
             xcb_t *xcb;
         	dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
-            xcb = (xcb_t *)&dblk->data;
+            xcb = (xcb_t *)&dblk->data; 
             if (xcb->size > file->size ) {
         		file->size = xcb->size;
             }
             return 0;
 
         }else{
-          
+
             errorMessage("fileSetAttr: Unexpected return value");
 	        return -1;
         }
     }
-
 }
+
 
 /**********************************************************************
 
@@ -957,76 +842,16 @@ int fileSetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
                   size - of buffer for value
     Outputs     : number of bytes on success, <0 on error
 
-	This funstion retrieves that value of a file's attribute name (length of name_size).
-	This function also takes a buffer for the value, called value, that is allocated to 
-	accept string of up to size bytes. You code should return the number of bytes read
-	into the value buffer. If no attribute of name is assigned, then nothing (0 bytes)
-	is returned. 
-
 ***********************************************************************/
 
-int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int size)
+int fileGetAttr( unsigned int fd, char *name, char *value, unsigned int name_size, unsigned int size ) 
 {
 	/* IMPLEMENT THIS */
-
-	/**********************************************************************
-	SYSCALL_DEFINE4(fgetxattr, int, fd, const char __user *, name,
-		void __user *, value, size_t, size)
-	{
-		struct fd f = fdget(fd);
-		ssize_t error = -EBADF;
-
-		if (!f.file)
-			return error;
-		audit_file(f.file);
-		error = getxattr(f.file->f_path.dentry, name, value, size);
-		fdput(f);
-		return error;
-	}
-/////////////////////////////////////////////////////////////////////////////////////
-	getxattr(struct dentry *d, const char __user *name, void __user *value,
-	 size_t size)
-	{
-		ssize_t error;
-		void *kvalue = NULL;
-		char kname[XATTR_NAME_MAX + 1];
-
-		error = strncpy_from_user(kname, name, sizeof(kname));
-		if (error == 0 || error == sizeof(kname))
-			error = -ERANGE;
-		if (error < 0)
-			return error;
-
-		if (size) {
-			if (size > XATTR_SIZE_MAX)
-				size = XATTR_SIZE_MAX;
-			kvalue = kvzalloc(size, GFP_KERNEL);
-			if (!kvalue)
-				return -ENOMEM;
-		}
-
-		error = vfs_getxattr(d, kname, kvalue, size);
-		if (error > 0) {
-			if ((strcmp(kname, XATTR_NAME_POSIX_ACL_ACCESS) == 0) ||
-				(strcmp(kname, XATTR_NAME_POSIX_ACL_DEFAULT) == 0))
-				posix_acl_fix_xattr_to_user(kvalue, error);
-			if (size && copy_to_user(value, kvalue, error))
-				error = -EFAULT;
-		} else if (error == -ERANGE && size >= XATTR_SIZE_MAX) {
-			
-			error = -E2BIG;
-		}
-
-		kvfree(kvalue);
-
-		return error;
-	}
-	***********************************************************************/
 
 	fstat_t *fstat = fs->proc->fstat_table[fd];
 	file_t *file;
 	
-	if ( fstat == NULL ){
+	if ( fstat == NULL ) {
 		errorMessage("fileGetAttr: No file corresponds to fd");
 		return -1;
 	}
@@ -1037,28 +862,21 @@ int fileGetAttr(unsigned int fd, char *name, char *value, unsigned int name_size
 		errorMessage("fileGetAttr: No file corresponds to fstat");
 		return -1;
 	}
-
     unsigned int attr_block = file->attr_block;
     if (attr_block == BLK_INVALID){
-
         attr_block = diskGetAttrBlock(file, BLOCK_CREATE);
     }
 
     int attr_found = diskGetAttr(attr_block, name, NULL, name_size, -1, 1);
     if ( attr_found == 1){
-
         int bytes_read = diskGetAttr(attr_block, name, value, name_size, size, 0);
         if (bytes_read == 0){
-
             errorMessage("fileGetAttr:bytes_read was 0");
-        }
-        else if (bytes_read < 0){
+        }else if (bytes_read < 0){
             errorMessage("fileGetAttr: Standard call to diskGetAttr couldn't find attr of specified name");
         }
         return bytes_read;
-		
-    }else{
-
+    }else {
         errorMessage("fileGetAttr: Couldn't find attr file of the specified name");
 	    return 0;
     }

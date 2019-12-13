@@ -52,11 +52,14 @@ if __name__ == '__main__':
     run2 = "./cmpsc473-p4 test_fs cmd2 " + op + " test-out2.txt"
     run3 = "./cmpsc473-p4 test_fs cmd3 " + op + " test-out3.txt"
     run4 = "./cmpsc473-p4-test test_fs cmd3.test " + op + " test-set-out3.txt"
-    run5 = "./cmpsc473-p4 test_fs cmd4 " + op + " test-out4.txt"
-    run6 = "./cmpsc473-p4-test test_fs cmd4.test " + op + " test-set-out4.txt"
-    run7 = "./cmpsc473-p4 test_fs cmd5 " + op + " test-out5.txt"
-    run8 = "./cmpsc473-p4 test_fs cmd5.test " + op + " test-xattr-out5.txt"
-    run9 = "./cmpsc473-p4-test test_fs cmd5.test " + op + " test-set-out5.txt"
+    run5 = "./cmpsc473-p4 test_fs cmd3.test " + op + " test-st-set-out3.txt"
+    run6 = "./cmpsc473-p4 test_fs cmd4 " + op + " test-out4.txt"
+    run7 = "./cmpsc473-p4-test test_fs cmd4.test " + op + " test-set-out4.txt"
+    run8 = "./cmpsc473-p4 test_fs cmd4.test " + op + " test-st-set-out4.txt"
+    run9 = "./cmpsc473-p4 test_fs cmd5 " + op + " test-out5.txt"
+    run10 = "./cmpsc473-p4 test_fs cmd5.test " + op + " test-xattr-out5.txt"
+    run11 = "./cmpsc473-p4-test test_fs cmd5.test " + op + " test-set-out5.txt"
+    run12 = "./cmpsc473-p4 test_fs cmd5.test " + op + " test-st-set-out5.txt"
     os.system(run1)
     os.system(run2)
     os.system(run3)
@@ -66,6 +69,9 @@ if __name__ == '__main__':
     os.system(run7)
     os.system(run8)
     os.system(run9)
+    os.system(run10)
+    os.system(run11)
+    os.system(run12)
     # os.system('./cmpsc473-p4 test_fs cmd2 %s test-out2.txt')
     # os.system('./cmpsc473-p4 test_fs cmd3 >& test-out3.txt')
     # os.system('./cmpsc473-p4-test test_fs cmd3.test >& test-set-out3.txt')
@@ -94,8 +100,39 @@ if __name__ == '__main__':
     print( "--------------------------------------------------")
     print( "SETXATTR PART:")
     print( "--------------------------------------------------")
+    cmd3_st_set = 0
+    cmd3_our_set = 0
+    f = open("test-st-set-out3.txt", "r")
+    for i,s in enumerate(f):
+        s = s.rstrip('\n')
+        if s[0:4] == "open" or s[0:5]=="XATTR" :
+            continue
+        if s[0:15] =="getxattr: error":
+            continue
+        s = s.split('=')
+        for name in l_f0_n:
+            if s[0] == name:
+                if s[1] == l_f0_v[l_f0_n.index(name)]:
+                    cmd3_st_set = cmd3_st_set + 2
 
     f = open("test-set-out3.txt", "r")
+    for i,s in enumerate(f):
+        s = s.rstrip('\n')
+        if s[0:4] == "open" or s[0:5]=="XATTR" :
+            continue
+        if s[0:15] =="getxattr: error":
+            continue
+        s = s.split('=')
+        for name in l_f0_n:
+            if s[0] == name:
+                if s[1] == l_f0_v[l_f0_n.index(name)]:
+                    cmd3_our_set = cmd3_our_set + 2
+
+    if cmd3_st_set > cmd3_our_set:
+        f = open("test-st-set-out3.txt", "r")
+    else:
+        f = open("test-set-out3.txt", "r")
+
     for i,s in enumerate(f):
         s = s.rstrip('\n')
         if s[0:4] == "open" or s[0:5]=="XATTR" :
@@ -228,9 +265,190 @@ if __name__ == '__main__':
     print( "--------------------------------------------------")
     print( "SETXATTR PART:")
     print( "--------------------------------------------------")
+    cmd4_st_set = 0
+    cmd4_our_set = 0
+    f = open("test-st-set-out4.txt", "r")
+    for i,s in enumerate(f):
+        s = s.rstrip('\n')
+        if s[0:4] == "open" or s[0:5]=="XATTR" :
+            continue
+        if s[0:15] =="getxattr: error":
+            #print ("[INCORRECT(POINTS:0):] \t ATTR NAME: %s" %(s[35:-1]))
+            continue
+
+        if s[0:15] == "getxattr: fd: 0":
+            turn = 0
+            fd = 0
+            continue
+
+        if s[0:15] == "getxattr: fd: 1":
+            turn = 1
+            fd = 1
+            continue
+
+        if s[0:15] == "getxattr: fd: 2":
+            turn = 2
+            fd = 2
+            continue
+
+        none = -1
+        flag = s.find('=')
+        s = s.split('=')
+        if flag != -1:
+            if turn == 0:
+
+                for name in l_f2_n:
+                    if s[0] == name:
+                        none = 1
+
+                        if s[1] == l_f2_v[l_f2_n.index(name)]:
+
+                            cmd4_st_set = cmd4_st_set + 2
+                            #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %(fd, s[0],s[1]))
+                            turn = -1
+                            break
+
+            elif turn == 1:
+
+                for name in l_f1_n:
+                    if s[0] == name:
+                        none = 1
+                        if s[1] == l_f1_v[l_f1_n.index(name)]:
+
+                            cmd4_st_set = cmd4_st_set + 2
+                            #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %(fd, s[0],s[1]))
+                            turn = -1
+                            break
+
+
+            elif turn == 2:
+
+                for name in l_f0_n:
+                    if s[0] == name:
+                        none = 1
+                        if str(s[0]) == "security":
+
+                            if s[1] == l_f0_v[l_f0_n.index(name)]:
+                                cmd4_st_set = cmd4_st_set + 2
+                                #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %( fd, s[0],s[1]))
+                                turn = -1
+                                break
+
+                        else:
+                            if s[1] == l_f0_v[l_f0_n.index(name)]:
+
+                                cmd4_st_set = cmd4_st_set + 1
+                                #print ("[CORRECT(POINTS:+1):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %( fd, s[0],s[1]))
+                                turn = -1
+                                break
+
+            if turn != -1:
+                if s[1] == '' and none == -1:
+                    cmd4_st_set = cmd4_st_set + 2
+
+                    turn = -1
+                    #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE:" %(fd, s[0]))
+                else:
+                    turn = -1
+                    #print ("[INCORRECT(POINTS:0):] fd = %d \t ATTR NAME: %s" %(fd, s[0]))
+
+    f = open("test-set-out4.txt", "r")
+    for i,s in enumerate(f):
+        s = s.rstrip('\n')
+        if s[0:4] == "open" or s[0:5]=="XATTR" :
+            continue
+        if s[0:15] =="getxattr: error":
+            #print ("[INCORRECT(POINTS:0):] \t ATTR NAME: %s" %(s[35:-1]))
+            continue
+
+        if s[0:15] == "getxattr: fd: 0":
+            turn = 0
+            fd = 0
+            continue
+
+        if s[0:15] == "getxattr: fd: 1":
+            turn = 1
+            fd = 1
+            continue
+
+        if s[0:15] == "getxattr: fd: 2":
+            turn = 2
+            fd = 2
+            continue
+
+        none = -1
+        flag = s.find('=')
+        s = s.split('=')
+        if flag != -1:
+            if turn == 0:
+
+                for name in l_f2_n:
+                    if s[0] == name:
+                        none = 1
+
+                        if s[1] == l_f2_v[l_f2_n.index(name)]:
+
+                            cmd4_our_set = cmd4_our_set + 2
+                            #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %(fd, s[0],s[1]))
+                            turn = -1
+                            break
+
+            elif turn == 1:
+
+                for name in l_f1_n:
+                    if s[0] == name:
+                        none = 1
+                        if s[1] == l_f1_v[l_f1_n.index(name)]:
+
+                            cmd4_our_set = cmd4_our_set + 2
+                            #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %(fd, s[0],s[1]))
+                            turn = -1
+                            break
+
+
+            elif turn == 2:
+
+                for name in l_f0_n:
+                    if s[0] == name:
+                        none = 1
+                        if str(s[0]) == "security":
+
+                            if s[1] == l_f0_v[l_f0_n.index(name)]:
+                                cmd4_our_set = cmd4_our_set + 2
+                                #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %( fd, s[0],s[1]))
+                                turn = -1
+                                break
+
+                        else:
+                            if s[1] == l_f0_v[l_f0_n.index(name)]:
+
+                                cmd4_our_set = cmd4_our_set + 1
+                                #print ("[CORRECT(POINTS:+1):] fd = %d \t ATTR NAME: %s \t VALUE: %s" %( fd, s[0],s[1]))
+                                turn = -1
+                                break
+
+            if turn != -1:
+                if s[1] == '' and none == -1:
+                    cmd4_our_set = cmd4_our_set + 2
+
+                    turn = -1
+                    #print ("[CORRECT(POINTS:+2):] fd = %d \t ATTR NAME: %s \t VALUE:" %(fd, s[0]))
+                else:
+                    turn = -1
+                    #print ("[INCORRECT(POINTS:0):] fd = %d \t ATTR NAME: %s" %(fd, s[0]))
+
+
+
+
+
+    if cmd4_st_set > cmd4_our_set:
+        f = open("test-st-set-out4.txt", "r")
+    else:
+        f = open("test-set-out4.txt", "r")
+
     turn = -1
     fd = -1
-    f = open("test-set-out4.txt", "r")
+    #f = open("test-set-out4.txt", "r")
     for i,s in enumerate(f):
         s = s.rstrip('\n')
         if s[0:4] == "open" or s[0:5]=="XATTR" :
@@ -478,8 +696,195 @@ if __name__ == '__main__':
     print( "--------------------------------------------------")
     print( "SETXATTR PART:")
     print( "--------------------------------------------------")
-    turn = -1
+    cmd5_st_set =0
+    cmd5_our_set=0
+    f = open("test-st-set-out5.txt", "r")
+    for i,s in enumerate(f):
+        s = s.rstrip('\n')
+        if s[0:4] == "open" or s[0:5]=="XATTR":
+            continue
+
+        if s[0:15] =="getxattr: error":
+            #print ("[INCORRECT(POINTS:0):] \t ATTR NAME: %s" %(s[35:-1]))
+            continue
+
+        if s[0:15] == "getxattr: fd: 0":
+            turn = 0
+            fd = 0
+            continue
+
+        if s[0:15] == "getxattr: fd: 1":
+            turn = 1
+            fd = 1
+            continue
+
+        if s[0:15] == "getxattr: fd: 2":
+            turn = 2
+            fd = 2
+            continue
+
+        none = -1
+        flag = s.find('=')
+        s = s.split('=')
+        if flag != -1:
+            if turn == 0:
+
+                for name in l_f2_n:
+                    if s[0] == name:
+                        none = 1
+                        if s[1] == l_f2_v[l_f2_n.index(name)]:
+                            cmd5_st_set = cmd5_st_set + 2
+                            #print ("[CORRECT(POINTS:+2):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                            turn = -1
+                            break
+
+            elif turn == 1:
+
+                for name in l_f1_n:
+                    if s[0] == name:
+                        none = 1
+                        if str(s[0]) == "article.venues":
+                            if s[1] == l_f1_v[l_f1_n.index(name)]:
+                                cmd5_st_set = cmd5_st_set + 1
+                                #print ("[CORRECT(POINTS:+1):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+
+                        else:
+                            if s[1] == l_f1_v[l_f1_n.index(name)]:
+                                cmd5_st_set = cmd5_st_set + 2
+                                #print ("[CORRECT(POINTS:+2):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+
+            elif turn == 2:
+
+                for name in l_f0_n:
+                    if s[0] == name:
+                        none = 1
+                        if str(s[0]) == "article.venues":
+                            if s[1] == '':
+                                cmd5_st_set = cmd5_st_set + 1
+                                #print ("[CORRECT(POINTS:+2):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+                        else:
+                            if s[1] == l_f0_v[l_f0_n.index(name)]:
+                                cmd5_st_set = cmd5_st_set + 1
+                                #print ("[CORRECT(POINTS:+1):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+            if turn != -1:
+                if s[1] == '' and none == -1:
+                    cmd5_st_set = cmd5_st_set + 1
+                    turn = -1
+                    #print ("[CORRECT(POINTS:+1):] fd = %d \t NAME: %s \t VALUE:" %(fd,s[0]))
+                else:
+                    turn = -1
+                    #print ("[INCORRECT(POINTS:0):] fd = %d \t ATTR NAME: %s" %(fd,s[0]))
+
     f = open("test-set-out5.txt", "r")
+    for i,s in enumerate(f):
+        s = s.rstrip('\n')
+        if s[0:4] == "open" or s[0:5]=="XATTR":
+            continue
+
+        if s[0:15] =="getxattr: error":
+            #print ("[INCORRECT(POINTS:0):] \t ATTR NAME: %s" %(s[35:-1]))
+            continue
+
+        if s[0:15] == "getxattr: fd: 0":
+            turn = 0
+            fd = 0
+            continue
+
+        if s[0:15] == "getxattr: fd: 1":
+            turn = 1
+            fd = 1
+            continue
+
+        if s[0:15] == "getxattr: fd: 2":
+            turn = 2
+            fd = 2
+            continue
+
+        none = -1
+        flag = s.find('=')
+        s = s.split('=')
+        if flag != -1:
+            if turn == 0:
+
+                for name in l_f2_n:
+                    if s[0] == name:
+                        none = 1
+                        if s[1] == l_f2_v[l_f2_n.index(name)]:
+                            cmd5_our_set = cmd5_our_set + 2
+                            #print ("[CORRECT(POINTS:+2):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                            turn = -1
+                            break
+
+            elif turn == 1:
+
+                for name in l_f1_n:
+                    if s[0] == name:
+                        none = 1
+                        if str(s[0]) == "article.venues":
+                            if s[1] == l_f1_v[l_f1_n.index(name)]:
+                                cmd5_our_set = cmd5_our_set + 1
+                                #print ("[CORRECT(POINTS:+1):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+
+                        else:
+                            if s[1] == l_f1_v[l_f1_n.index(name)]:
+                                cmd5_our_set = cmd5_our_set + 2
+                                #print ("[CORRECT(POINTS:+2):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+
+            elif turn == 2:
+
+                for name in l_f0_n:
+                    if s[0] == name:
+                        none = 1
+                        if str(s[0]) == "article.venues":
+                            if s[1] == '':
+                                cmd5_our_set = cmd5_our_set + 1
+                                #print ("[CORRECT(POINTS:+2):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+                        else:
+                            if s[1] == l_f0_v[l_f0_n.index(name)]:
+                                cmd5_our_set = cmd5_our_set + 1
+                                #print ("[CORRECT(POINTS:+1):] fd = %d \t NAME: %s \t VALUE: %s" %(fd,s[0],s[1]))
+                                turn = -1
+                                break
+
+            if turn != -1:
+                if s[1] == '' and none == -1:
+                    cmd5_our_set = cmd5_our_set + 1
+                    turn = -1
+                    #print ("[CORRECT(POINTS:+1):] fd = %d \t NAME: %s \t VALUE:" %(fd,s[0]))
+                else:
+                    turn = -1
+                    #print ("[INCORRECT(POINTS:0):] fd = %d \t ATTR NAME: %s" %(fd,s[0]))
+
+
+
+    if cmd5_st_set > cmd5_our_set:
+        f = open("test-st-set-out5.txt", "r")
+    else:
+        f = open("test-set-out5.txt", "r")
+
+    turn = -1
+    #f = open("test-set-out5.txt", "r")
     for i,s in enumerate(f):
         s = s.rstrip('\n')
         if s[0:4] == "open" or s[0:5]=="XATTR":
