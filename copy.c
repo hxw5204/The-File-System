@@ -807,7 +807,7 @@ int fileSetAttr( unsigned int fd, char *name, char *value, unsigned int name_siz
 		//printf("flags = %d\n",flags);
 		//printf("xttra = %d\n\n",XATTR_CREATE);
 		if(flags == XATTR_CREATE){
-			errorMessage("fileSetAttr: the conditions are not consistent with the flags. (founded and XATTR_CREATE)");
+			errorMessage("fileSetAttr fail: already an entry for name - incompatible with flag XATTR_CREATE");
 	        	return error;
 		}else{
 			attr = diskSetAttr(temp_attr_block, name, value, name_size, value_size);
@@ -828,7 +828,7 @@ int fileSetAttr( unsigned int fd, char *name, char *value, unsigned int name_siz
 	}else if(founded < 0){
 
 		if(flags == XATTR_REPLACE){
-			errorMessage("fileSetAttr: the conditions are not consistent with the flags. (not founded and XATTR_REPLACE)");
+			errorMessage("fileSetAttr fail: no existing entry for name - incompatible with flag XATTR_REPLACE");
 	        	return error;
 		}else{
 			attr = diskSetAttr(temp_attr_block, name, value, name_size, value_size);
