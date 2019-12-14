@@ -9,52 +9,28 @@ XATTR for super: NUM_XATTR = 0 	  TOTAL_SUM_OF_XATTR_NAMES = 0
 open: name = luper; flags = 2
 XATTR for luper: NUM_XATTR = 4 	  TOTAL_SUM_OF_XATTR_NAMES = 48
 setxattr: fd: 0; attr: security; value: user_u:sysadm_r:duper_t; flags: 0x1
-
-
-found = -1
 setxattr: succeeded
 setxattr: fd: 1; attr: security; value: user_u:sysadm_r:super_t; flags: 0x1
-
-
-found = -1
 setxattr: succeeded
 setxattr: fd: 2; attr: security; value: user_u:sysadm_r:init_t; flags: 0x1
-
-
-found = -1
 setxattr: succeeded
 setxattr: fd: 1; attr: testing; value: this is still a test; flags: 0x1
-
-
-found = -1
 setxattr: succeeded
 setxattr: fd: 1; attr: article.title; value: Innovations in Linux Management; flags: 0x1
-
-
-found = -1
 setxattr: succeeded
 setxattr: fd: 0; attr: article.author; value: Wk Yksdjfhgaskjdfhg; flags: 0x2
-
-
-found = -1
 setxattr: failed to set attribute name article.author to Wk Yksdjfhgaskjdfhg with flags 2 for fd 0
 setxattr: succeeded
 setxattr: fd: 2; attr: article.title; value: Innovations in Linux Management; flags: 0x1
-
-
-found = 1
-flags = 1
-xttra = 1
-
 setxattr: failed to set attribute name article.title to Innovations in Linux Management with flags 1 for fd 2
 setxattr: succeeded
-getxattr: fd: 0; attr: article.author; buf: 0x81c2ad8, name_size: 14; value_size: 50
+getxattr: fd: 0; attr: article.author; buf: 0x833fad8, name_size: 14; value_size: 50
 article.author=
-getxattr: fd: 2; attr: article.author; buf: 0x81c2ad8, name_size: 14; value_size: 50
+getxattr: fd: 2; attr: article.author; buf: 0x833fad8, name_size: 14; value_size: 50
 article.author=Wkhdasgfkhf Yksdjfhgaskjdfhg
-getxattr: fd: 1; attr: article.title; buf: 0x81c2ad8, name_size: 13; value_size: 50
+getxattr: fd: 1; attr: article.title; buf: 0x833fad8, name_size: 13; value_size: 50
 article.title=Innovations in Linux Management
-getxattr: fd: 2; attr: article.title; buf: 0x81c2ad8, name_size: 13; value_size: 50
+getxattr: fd: 2; attr: article.title; buf: 0x833fad8, name_size: 13; value_size: 50
 article.title=Innovations in Window Management
 close: 0
 close: 1

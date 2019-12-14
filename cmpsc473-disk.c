@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Definitions */
 
+int FS_LINK = FS_BLOCKSIZE - sizeof(dblock_t);
+int mark_offset = 1;
 /* program variables */
 
 /* Functions */
@@ -560,7 +562,7 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
 	int index;
 	unsigned int offset;
 	int error = -1;
-
+	
 	while (i < xb->no_xattrs){
 
 		if (((dxattr_t*)xattr)->name ){
@@ -574,7 +576,7 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
                 		offset = ((dxattr_t*)xb->size)->value_offset;
 				while ( x < value_size ) {  
 		        	
-		            		index = offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+		            		index = offset / FS_LINK;
 					block = xb->value_blocks[index];
 
 					if ( index >= XATTR_BLOCKS ) {
@@ -631,13 +633,14 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
 		    	((dxattr_t*)xattr)->name_size = name_size;
 			memcpy(((dxattr_t*)xattr)->name, name, name_size);
 			((dxattr_t*)xattr)->value_offset = xb->size;
-		   
+		   	
 		    	offset = ((dxattr_t*)xattr)->value_offset;
 		}
+
 		int y = 0;
 		while ( y < value_size ) {   
 
-			index = offset / (FS_BLOCKSIZE - sizeof(dblock_t));
+			index = offset / FS_LINK;
 		    	block = xb->value_blocks[index];
 
 		    	if ( index >= XATTR_BLOCKS ) {
@@ -663,7 +666,6 @@ int diskSetAttr( unsigned int attr_block, char *name, char *value,
 
 
 	    		y += content; 
-
 	    		offset += content;
 	    		value += content;
 		}
@@ -704,39 +706,41 @@ int diskGetAttr( unsigned int attr_block, char *name, char *value,
 { 
 	/* IMPLEMENT THIS */
 
-
-
-	dblock_t *dblk;
-	xcb_t *xcb;
-	int i;
-	dblk = (dblock_t *)disk2addr( fs->base, (block2offset( attr_block )));
-	xcb = (xcb_t *)&dblk->data;
-	unsigned int total;
-	int error = -1;
-	char * nameToCompare;
 	
-    	char * xattr_ptr = (char *) (xcb->xattrs);
+	int i;
+	xcb_t *xb = (xcb_t *)&((dblock_t *)disk2addr( fs->base, (block2offset( attr_block ))))->data;
+	unsigned int x=0;
+	int error = -1;
+	unsigned int block;
+	unsigned int read;
+	char * cname;
+	unsigned int offset;
+    	char * xattr = (char *) (xb->xattrs);
+	int content;
+	int index;
 
-	for ( i = 0; i < xcb->no_xattrs; i++ ){
+	for ( i = 0; i < xb->no_xattrs; i++ ){
 
-		if (((dxattr_t*)xattr_ptr)->name != NULL){
+		if (((dxattr_t*)xattr)->name && mark_offset){
 
-			nameToCompare = (char*) malloc(name_size * sizeof(char));
-			memcpy(nameToCompare, ((dxattr_t*)xattr_ptr)->name, name_size);
-			total = 0;
-		    	if (strcmp(nameToCompare, name) == 0){
+			cname = (char*) malloc(name_size * sizeof(char));
+			memcpy(cname, ((dxattr_t*)xattr)->name, name_size);
+		
+		    	if (strcmp(cname, name) == 0){
 
-		        	if (existsp == 1){       
+		        	if (existsp == 1 && mark_offset){       
 		    			return 1;
 				}
-				unsigned int current_read_offset = ((dxattr_t*)xattr_ptr)->value_offset;
-		        	int num_bytes_to_read = min(size, ((dxattr_t*)xattr_ptr)->value_size);
+
+				offset = ((dxattr_t*)xattr)->value_offset;
+				mark_offset = 1;
+		        	content = min(size, ((dxattr_t*)xattr)->value_size);
 		       
-				while ( total < num_bytes_to_read ) {   
+				while ( x < content ) {   
 					
-		            		int index = current_read_offset / (FS_BLOCKSIZE - sizeof(dblock_t));                    		        	
-		            		unsigned int block = xcb->value_blocks[index];
-					unsigned int bytes_read;
+		            		index = offset / FS_LINK;                    		        	
+		            		block = xb->value_blocks[index];
+			
 		          
 					if ( block == BLK_INVALID ) {		                
 			    			if (allocDblock( &block, ATTR_BLOCK ) < 0){
@@ -745,28 +749,30 @@ int diskGetAttr( unsigned int attr_block, char *name, char *value,
 						    	return error;
 		                		}
 		               
-		                		xcb->value_blocks[index] = block;
+		                		xb->value_blocks[index] = block;
 					}
 		     
 					if ( index >= XATTR_BLOCKS ) {
-				    		errorMessage("diskSetAttr: Max size of value file attributes reached");
-		                    		return total;
+				    		errorMessage("diskSetAttr: max size");
+		                    		return x;
+					}
+
+					if (mark_offset){
+		            			read = diskRead(block, value, content,  offset, x);
 					}
 
 					
-		            		bytes_read = diskRead(block, value, num_bytes_to_read,  current_read_offset, total);
-
-					
-					total += bytes_read; 
-
-					current_read_offset += bytes_read;
-					value += bytes_read;
+					x += read; 
+					mark_offset = 1;
+					offset += read;
+					value += read;
 				}
 			   
-		    	return total;
+		    	return x;
 			}
 		}
-		xattr_ptr += sizeof(dxattr_t) + ((dxattr_t*)xattr_ptr)->name_size;
+		xattr += sizeof(dxattr_t) + ((dxattr_t*)xattr)->name_size;
+		mark_offset = 1;
 	}
 	return error;
 }
